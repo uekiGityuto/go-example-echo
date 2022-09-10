@@ -2,6 +2,7 @@ package main
 
 import (
 	validation "github.com/go-ozzo/ozzo-validation"
+	"github.com/go-ozzo/ozzo-validation/is"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"net/http"
@@ -29,6 +30,12 @@ func (cv *CustomValidator) Validate(i interface{}) error {
 	return nil
 }
 
+const (
+	Required      = "Required"
+	Invalid       = "Invalid Data"
+	Inconsistency = "Data Inconsistency"
+)
+
 type User struct {
 	Name  string `json:"name"`
 	Email string `json:"email"`
@@ -36,8 +43,8 @@ type User struct {
 
 func (u *User) Validate() error {
 	return validation.ValidateStruct(u,
-		validation.Field(&u.Name, validation.Required),
-		validation.Field(&u.Email, validation.Required),
+		validation.Field(&u.Name, validation.Required.Error(Required)),
+		validation.Field(&u.Email, validation.Required.Error(Required), is.Email.Error(Invalid)),
 	)
 }
 

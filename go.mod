@@ -2,10 +2,13 @@ module github.com/uekiGityuto/go-example-echo
 
 go 1.19
 
-require github.com/labstack/echo/v4 v4.8.0
+require (
+	github.com/go-ozzo/ozzo-validation v3.6.0+incompatible
+	github.com/labstack/echo/v4 v4.8.0
+)
 
 require (
-	github.com/go-ozzo/ozzo-validation v3.6.0+incompatible // indirect
+	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
 	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
 	github.com/labstack/gommon v0.3.1 // indirect
 	github.com/mattn/go-colorable v0.1.11 // indirect
