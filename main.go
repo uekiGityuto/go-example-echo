@@ -2,14 +2,23 @@ package main
 
 import (
 	validation "github.com/go-ozzo/ozzo-validation"
-	"github.com/go-ozzo/ozzo-validation/is"
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/google/uuid"
+	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"net/http"
 )
 
+var db *sqlx.DB
+
 func main() {
 	e := echo.New()
+	var err error
+	db, err = sqlx.Open("mysql", "member:@(127.0.0.1:3306)/practice")
+	if err != nil {
+		e.Logger.Fatal(err)
+	}
 
 	e.Validator = new(CustomValidator)
 	e.Use(middleware.Logger())
@@ -37,15 +46,30 @@ const (
 )
 
 type User struct {
-	Name  string `json:"name"`
-	Email string `json:"email"`
+	Id         uuid.UUID `json:"id" db:"id"`
+	FamilyName string    `json:"family_name" db:"family_name"`
+	GivenName  string    `json:"given_name" db:"given_name"`
+	Age        int       `json:"age" db:"age"`
+	Sex        string    `json:"sex" db:"sex"`
 }
 
 func (u *User) Validate() error {
 	return validation.ValidateStruct(u,
-		validation.Field(&u.Name, validation.Required.Error(Required)),
-		validation.Field(&u.Email, validation.Required.Error(Required), is.Email.Error(Invalid)),
+		validation.Field(&u.FamilyName, validation.Required.Error(Required)),
+		validation.Field(&u.GivenName, validation.Required.Error(Required)),
+		validation.Field(&u.Age, validation.Required.Error(Required), validation.Min(0).Error(Invalid)),
+		validation.Field(&u.Sex, validation.Required.Error(Required), validation.In("男", "女").Error(Invalid)),
 	)
+}
+
+type Error struct {
+	Msg string `json:"error_message"`
+}
+
+func NewError(msg string) Error {
+	return Error{
+		Msg: msg,
+	}
 }
 
 type ValidationError struct {
@@ -61,10 +85,15 @@ func NewValidationError(field string, reason string) ValidationError {
 }
 
 func getUser(c echo.Context) error {
-	u := User{
-		Name:  "John",
-		Email: "john@example.com",
+	id := c.QueryParam("id")
+	ctx := c.Request().Context()
+	u := new(User)
+	if err := db.GetContext(ctx, u, "SELECT * FROM user WHERE id = ?", id); err != nil {
+		//c.Logger().Error(err)
+		e := NewError("ユーザ情報取得エラー")
+		return c.JSON(http.StatusBadRequest, e)
 	}
+
 	return c.JSON(http.StatusOK, u)
 }
 

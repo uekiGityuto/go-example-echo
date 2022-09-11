@@ -4,12 +4,15 @@ go 1.19
 
 require (
 	github.com/go-ozzo/ozzo-validation v3.6.0+incompatible
+	github.com/go-sql-driver/mysql v1.6.0
+	github.com/jmoiron/sqlx v1.3.5
 	github.com/labstack/echo/v4 v4.8.0
 )
 
 require (
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
 	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
+	github.com/google/uuid v1.3.0 // indirect
 	github.com/labstack/gommon v0.3.1 // indirect
 	github.com/mattn/go-colorable v0.1.11 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
