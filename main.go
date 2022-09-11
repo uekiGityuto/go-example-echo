@@ -62,6 +62,16 @@ func (u *User) Validate() error {
 	)
 }
 
+type OK struct {
+	Msg string `json:"message"`
+}
+
+func NewOK(msg string) OK {
+	return OK{
+		Msg: msg,
+	}
+}
+
 type Error struct {
 	Msg string `json:"error_message"`
 }
@@ -85,12 +95,14 @@ func NewValidationError(field string, reason string) ValidationError {
 }
 
 func getUser(c echo.Context) error {
-	id := c.QueryParam("id")
 	ctx := c.Request().Context()
+	id := c.QueryParam("id")
+	// TODO: idのvalidation
 	u := new(User)
 	if err := db.GetContext(ctx, u, "SELECT * FROM user WHERE id = ?", id); err != nil {
 		//c.Logger().Error(err)
-		e := NewError("ユーザ情報取得エラー")
+		// TODO: システムエラーと見つからなかったエラーを分ける
+		e := NewError("ユーザ情報取得が見つかりません")
 		return c.JSON(http.StatusBadRequest, e)
 	}
 
@@ -98,6 +110,7 @@ func getUser(c echo.Context) error {
 }
 
 func postUser(c echo.Context) error {
+	ctx := c.Request().Context()
 	u := new(User)
 	if err := c.Bind(u); err != nil {
 		return err
@@ -111,5 +124,21 @@ func postUser(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, validationErrors)
 	}
 
-	return c.JSON(http.StatusOK, u)
+	id, err := uuid.NewRandom()
+	if err != nil {
+		c.Logger().Error(err)
+		e := NewError("システムエラー")
+		return c.JSON(http.StatusInternalServerError, e)
+	}
+	u.Id = id
+
+	_, err = db.NamedExecContext(ctx, `INSERT INTO user (id, family_name, given_name, age, sex) VALUES (:id, :family_name, :given_name, :age, :sex)`, u)
+	if err != nil {
+		c.Logger().Error(err)
+		e := NewError("システムエラー")
+		return c.JSON(http.StatusInternalServerError, e)
+	}
+
+	ok := NewOK("完了")
+	return c.JSON(http.StatusOK, ok)
 }
