@@ -99,8 +99,17 @@ func getUser(c echo.Context) error {
 	ctx := c.Request().Context()
 	id := c.QueryParam("id")
 	// TODO: idのvalidation
+
+	tx, err := db.Beginx()
+	if err != nil {
+		c.Logger().Error(err)
+		e := NewError("システムエラー")
+		return c.JSON(http.StatusInternalServerError, e)
+	}
+	defer tx.Rollback()
+
 	u := new(User)
-	if err := db.GetContext(ctx, u, "SELECT * FROM user WHERE id = ?", id); err != nil {
+	if err := tx.GetContext(ctx, u, "SELECT * FROM user WHERE id = ?", id); err != nil {
 		if err == sql.ErrNoRows {
 			e := NewError("ユーザ情報取得が見つかりません")
 			return c.JSON(http.StatusBadRequest, e)
@@ -109,6 +118,12 @@ func getUser(c echo.Context) error {
 			e := NewError("システムエラー")
 			return c.JSON(http.StatusInternalServerError, e)
 		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		c.Logger().Error(err)
+		e := NewError("システムエラー")
+		return c.JSON(http.StatusInternalServerError, e)
 	}
 
 	return c.JSON(http.StatusOK, u)
@@ -137,8 +152,22 @@ func postUser(c echo.Context) error {
 	}
 	u.Id = id
 
-	_, err = db.NamedExecContext(ctx, `INSERT INTO user (id, family_name, given_name, age, sex) VALUES (:id, :family_name, :given_name, :age, :sex)`, u)
+	tx, err := db.Beginx()
 	if err != nil {
+		c.Logger().Error(err)
+		e := NewError("システムエラー")
+		return c.JSON(http.StatusInternalServerError, e)
+	}
+	defer tx.Rollback()
+
+	_, err = tx.NamedExecContext(ctx, `INSERT INTO user (id, family_name, given_name, age, sex) VALUES (:id, :family_name, :given_name, :age, :sex)`, u)
+	if err != nil {
+		c.Logger().Error(err)
+		e := NewError("システムエラー")
+		return c.JSON(http.StatusInternalServerError, e)
+	}
+
+	if err := tx.Commit(); err != nil {
 		c.Logger().Error(err)
 		e := NewError("システムエラー")
 		return c.JSON(http.StatusInternalServerError, e)
