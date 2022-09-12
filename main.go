@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	validation "github.com/go-ozzo/ozzo-validation"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/google/uuid"
@@ -100,10 +101,14 @@ func getUser(c echo.Context) error {
 	// TODO: idのvalidation
 	u := new(User)
 	if err := db.GetContext(ctx, u, "SELECT * FROM user WHERE id = ?", id); err != nil {
-		//c.Logger().Error(err)
-		// TODO: システムエラーと見つからなかったエラーを分ける
-		e := NewError("ユーザ情報取得が見つかりません")
-		return c.JSON(http.StatusBadRequest, e)
+		if err == sql.ErrNoRows {
+			e := NewError("ユーザ情報取得が見つかりません")
+			return c.JSON(http.StatusBadRequest, e)
+		} else {
+			c.Logger().Error(err)
+			e := NewError("システムエラー")
+			return c.JSON(http.StatusInternalServerError, e)
+		}
 	}
 
 	return c.JSON(http.StatusOK, u)
